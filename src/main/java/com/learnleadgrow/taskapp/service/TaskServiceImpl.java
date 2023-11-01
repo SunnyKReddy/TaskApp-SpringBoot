@@ -3,6 +3,7 @@ package com.learnleadgrow.taskapp.service;
 import com.learnleadgrow.taskapp.dto.TaskRequestDTO;
 import com.learnleadgrow.taskapp.dto.TaskResponseDTO;
 import com.learnleadgrow.taskapp.dto.UserResponseDTO;
+import com.learnleadgrow.taskapp.exception.TaskNotFoundException;
 import com.learnleadgrow.taskapp.exception.UserNotFoundException;
 import com.learnleadgrow.taskapp.model.Task;
 import com.learnleadgrow.taskapp.model.User;
@@ -45,5 +46,33 @@ public class TaskServiceImpl implements TaskService{
         return tasks.stream().map(
                 task -> modelMapper.map(task, TaskResponseDTO.class)
         ).collect(Collectors.toList());
+    }
+
+    @Override
+    public TaskResponseDTO updateTask(long userId, long taskId, TaskRequestDTO taskRequestDTO) {
+        //long taskId = taskRequestDTO.getTaskId();
+        Task task = taskRepository.findById(taskId).orElseThrow(
+                () -> new TaskNotFoundException(String.format("Task with %d Id 'Not Found' in DB", taskId))
+        );
+        User user = userRepository.findById(userId).orElseThrow(
+                () -> new UserNotFoundException(String.format("User with %d Id 'Not Found' in DB", userId))
+        );
+        task = modelMapper.map(taskRequestDTO, Task.class);
+        task.setUser(user);
+        task.setId(taskId);
+        Task updatedTask = taskRepository.save(task);
+        return modelMapper.map(updatedTask, TaskResponseDTO.class);
+    }
+
+    @Override
+    public String deleteTask(long userId, long taskId) {
+        Task task = taskRepository.findById(taskId).orElseThrow(
+                () -> new TaskNotFoundException(String.format("Task with %d Id 'Not Found' in DB", taskId))
+        );
+        User user = userRepository.findById(userId).orElseThrow(
+                () -> new UserNotFoundException(String.format("User with %d Id 'Not Found' in DB", userId))
+        );
+        taskRepository.deleteById(task.getId());
+        return String.format("Task Id %d deleted successfully!", taskId);
     }
 }
